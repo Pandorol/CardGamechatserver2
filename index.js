@@ -1,4 +1,13 @@
 // Setup basic express server
+
+var Cmd = {
+    test1: 1,
+    ChatMsg: 2,
+    ChatNumUsers: 3,
+    GetRoomlist: 4,
+    GetIsAct: 5,
+}
+
 const express = require('express');
 const app = express();
 const server = require('http').createServer(app);
@@ -26,15 +35,37 @@ server.listen(port, () => {
     }
 })();
 
+var asyncgetroomlistfunc = async (socket) => {
+    try {
+        const rooms = await pubClient.hGetAll("rooms"); // 获取所有房间数据
+        const roomList = Object.keys(rooms).map(roomId => JSON.parse(rooms[roomId])); // 解析房间数据
+        socket.emit('message', { cmd: Cmd.GetRoomlist, roomList: roomList, code: 0 })
+    }
+    catch (err) {
+        console.log(err)
+        socket.emit('message', { cmd: Cmd.GetRoomlist, roomList: [], code: 1 })
+    }
+}
+var asyncGetIsActfunc = async (socket) => {
+    try {
+        let userdata = await pubClient.get(socket.userid)
 
-
+        if (userdata) {
+            socket.emit('message', { cmd: Cmd.GetIsAct, playerdata: JSON.parse(userdata) })
+        }
+    }
+    catch (err) {
+        console.log(err)
+        socket.emit('message', { cmd: Cmd.GetIsAct, code: 1 })
+    }
+}
 
 // Chatroom
 
 let numUsers = 0;
 
 io.on('connection', (socket) => {
-
+    socket.userid = socket.handshake.query.userid;
     ++numUsers;
 
     io.emit('message', {
@@ -42,11 +73,21 @@ io.on('connection', (socket) => {
         numUsers: numUsers
     });
     socket.on('message', (data) => {
-        io.emit('message', {
-            cmd: 2,
-            username: data.username,
-            message: data.message
-        });
+        if (data.cmd == Cmd.ChatMsg) {
+            io.emit('message', {
+                cmd: Cmd.ChatMsg,
+                username: data.username,
+                message: data.message
+            });
+        }
+        else if (data.cmd == Cmd.GetRoomlist) {
+
+            asyncgetroomlistfunc(socket)
+        }
+        else if (data.cmd == Cmd.GetIsAct) {
+
+            asyncGetIsActfunc(socket)
+        }
     });
 
     socket.on('disconnect', () => {
@@ -59,4 +100,5 @@ io.on('connection', (socket) => {
     socket.on("global", (data) => {
         socket.emit('message', data);
     });
+
 });
