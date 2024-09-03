@@ -1,13 +1,8 @@
 // Setup basic express server
 
-var Cmd = {
-    test1: 1,
-    ChatMsg: 2,
-    ChatNumUsers: 3,
-    GetRoomlist: 4,
-    GetIsAct: 5,
-}
 
+const Cmd = require("./cmd")
+const actions = require("./actions")
 const express = require('express');
 const app = express();
 const server = require('http').createServer(app);
@@ -16,9 +11,22 @@ const port = process.env.PORT || 3000;
 const { instrument } = require("@socket.io/admin-ui");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const { createClient } = require("redis");
+var mysql = require('mysql');
+var db = mysql.createPool({
+    host: '8.138.172.203',
+    user: 'chatdb',
+    password: '4mcAm5CbcirJKxmm',
+    database: 'chatdb'
+});
 
 const pubClient = createClient({ url: "redis://8.138.172.203:6379" });
 const subClient = pubClient.duplicate();
+global.datacli = pubClient
+global.db = db
+
+
+
+
 
 server.listen(port, () => {
     console.log('Server listening at port %d', port);
@@ -35,30 +43,9 @@ server.listen(port, () => {
     }
 })();
 
-var asyncgetroomlistfunc = async (socket) => {
-    try {
-        const rooms = await pubClient.hGetAll("rooms"); // 获取所有房间数据
-        const roomList = Object.keys(rooms).map(roomId => JSON.parse(rooms[roomId])); // 解析房间数据
-        socket.emit('message', { cmd: Cmd.GetRoomlist, roomList: roomList, code: 0 })
-    }
-    catch (err) {
-        console.log(err)
-        socket.emit('message', { cmd: Cmd.GetRoomlist, roomList: [], code: 1 })
-    }
-}
-var asyncGetIsActfunc = async (socket) => {
-    try {
-        let userdata = await pubClient.get(socket.userid)
 
-        if (userdata) {
-            socket.emit('message', { cmd: Cmd.GetIsAct, playerdata: JSON.parse(userdata) })
-        }
-    }
-    catch (err) {
-        console.log(err)
-        socket.emit('message', { cmd: Cmd.GetIsAct, code: 1 })
-    }
-}
+
+
 
 // Chatroom
 
@@ -82,11 +69,11 @@ io.on('connection', (socket) => {
         }
         else if (data.cmd == Cmd.GetRoomlist) {
 
-            asyncgetroomlistfunc(socket)
+            actions.asyncgetroomlistfunc(socket)
         }
         else if (data.cmd == Cmd.GetIsAct) {
 
-            asyncGetIsActfunc(socket)
+            actions.asyncGetIsActfunc(socket)
         }
     });
 
