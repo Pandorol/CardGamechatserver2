@@ -12,13 +12,18 @@ const { instrument } = require("@socket.io/admin-ui");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const { createClient } = require("redis");
 var mysql = require('mysql');
+// var db = mysql.createPool({
+//     host: '8.138.172.203',
+//     user: 'chatdb',
+//     password: '4mcAm5CbcirJKxmm',
+//     database: 'chatdb'
+// });
 var db = mysql.createPool({
     host: '8.138.172.203',
-    user: 'chatdb',
-    password: '4mcAm5CbcirJKxmm',
-    database: 'chatdb'
+    user: 'poster',
+    password: 'w8ecc7BLfAfX6ZCK',
+    database: 'poster'
 });
-
 const pubClient = createClient({ url: "redis://8.138.172.203:6379" });
 const subClient = pubClient.duplicate();
 global.datacli = pubClient
@@ -54,7 +59,7 @@ let numUsers = 0;
 io.on('connection', (socket) => {
     socket.userid = socket.handshake.query.userid;
     ++numUsers;
-
+    actions.SendLoginDatas(socket)
     io.emit('message', {
         cmd: 3,
         numUsers: numUsers

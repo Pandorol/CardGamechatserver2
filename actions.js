@@ -24,5 +24,19 @@ module.exports = {
             console.log(err)
             socket.emit('message', { cmd: Cmd.GetIsAct, code: 1 })
         }
+    },
+    SendLoginDatas(socket) {
+        var sql = 'SELECT * FROM logindatas WHERE userid = ? ';
+
+        // 执行查询，使用参数化查询防止 SQL 注入
+        db.query(sql, [socket.userid], function (err, results) {
+            if (err) {
+                console.log({ msg: '查询失败: ' + err.stack });
+
+                return;
+            }
+            //console.log(results[0])
+            socket.emit('message', { cmd: Cmd.LoginDatas, logindatas: results[0] })
+        });
     }
 }

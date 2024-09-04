@@ -4,4 +4,5 @@ module.exports = {
     ChatNumUsers: 3,
     GetRoomlist: 4,
     GetIsAct: 5,
+    LoginDatas: 6
 }
